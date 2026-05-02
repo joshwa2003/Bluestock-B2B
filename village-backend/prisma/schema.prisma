@@ -1,0 +1,104 @@
+// This is your Prisma schema file
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Country {
+  id     Int     @id @default(autoincrement())
+  name   String  @default("India")
+  states State[]
+}
+
+model State {
+  id         Int        @id @default(autoincrement())
+  code       Int        @unique
+  name       String
+  countryId  Int
+  country    Country    @relation(fields: [countryId], references: [id])
+  districts  District[]
+
+  @@index([name])
+  @@index([countryId])
+}
+
+model District {
+  id           Int           @id @default(autoincrement())
+  code         Int           @unique
+  name         String
+  stateId      Int
+  state        State         @relation(fields: [stateId], references: [id])
+  subDistricts SubDistrict[]
+
+  @@index([name])
+  @@index([stateId])
+}
+
+model SubDistrict {
+  id         Int       @id @default(autoincrement())
+  code       Int       @unique
+  name       String
+  districtId Int
+  district   District  @relation(fields: [districtId], references: [id])
+  villages   Village[]
+
+  @@index([name])
+  @@index([districtId])
+}
+
+model Village {
+  id            Int         @id @default(autoincrement())
+  code          Int         @unique
+  name          String
+  subDistrictId Int
+  subDistrict   SubDistrict @relation(fields: [subDistrictId], references: [id])
+
+  @@index([name])
+  @@index([subDistrictId])
+}
+
+model ApiKey {
+  id         Int       @id @default(autoincrement())
+  key        String    @unique
+  name       String
+  secretHash String?
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  lastUsed   DateTime?
+  userId     Int?
+  user       User?     @relation(fields: [userId], references: [id])
+  logs       ApiLog[]
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  companyName  String
+  email        String    @unique
+  passwordHash String
+  planType     String    @default("Free")   // Free | Premium | Pro | Unlimited
+  status       String    @default("PENDING") // PENDING | ACTIVE | SUSPENDED
+  createdAt    DateTime  @default(now())
+  apiKeys      ApiKey[]
+
+  @@index([status])
+  @@index([email])
+}
+
+model ApiLog {
+  id           Int      @id @default(autoincrement())
+  apiKeyId     Int
+  apiKey       ApiKey   @relation(fields: [apiKeyId], references: [id])
+  endpoint     String
+  method       String
+  statusCode   Int
+  responseTime Int      // in milliseconds
+  ipAddress    String?
+  createdAt    DateTime @default(now())
+
+  @@index([apiKeyId])
+  @@index([createdAt])
+}
